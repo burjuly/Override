@@ -1,0 +1,98 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void	clear_stdin() {
+	char	c = 0;
+
+	while (1) {
+		c = getchar();
+		if (c == '\n' || c == -1) {
+			return;
+		}
+	}
+}
+
+int		get_unum() {
+	unsigned int	x = 0;
+
+	fflush(stdout);
+	scanf("%u", &x);
+	clear_stdin();
+	return (x);
+}
+
+void	prog_timeout() {
+	exit(1);
+}
+
+int		store_number(int *buf) {
+	int		number;
+	int		index;
+
+	printf(" Number: ");
+	number = get_unum();
+	printf(" Index: ");
+	index = get_unum();
+
+	if ((index % 3) && number >> 24 != 183) {
+		buf[index] = number;
+		return (0);
+	}
+
+	puts(" *** ERROR! ***");
+	puts("   This index is reserved for wil!");
+	puts(" *** ERROR! ***");
+
+	return (1);
+}
+
+int		read_number(int *buf) {
+	int		number = 0;
+
+	printf(" Index: ");
+	number = get_unum();
+	printf(" Number at data[%u] is %u\n", number, buf[number]);
+
+	return (0);
+}
+
+int		main(int argc, char **argv, char **env) {
+	char	cmd[20] = {};
+	int		res = 0;
+	int 	buf[25] = {};
+
+	while (*argv != NULL) {
+		memset(*argv , 0, strlen(*argv));
+		argv++;
+	}
+	while (*env != NULL) {
+		memset(*env, 0, strlen(*env));
+		env++;
+	}
+
+	puts("----------------------------------------------------\n  Welcome to wil's crappy number storage service!   \n----------------------------------------------------\n Commands:                                          \n    store - store a number into the data storage    \n    read  - read a number from the data storage     \n    quit  - exit the program                        \n----------------------------------------------------\n   wil has reserved some storage :>                 \n----------------------------------------------------\n");
+	while (1) {
+		printf("Input command: ");
+		res = 1;
+		fgets(cmd, 20, stdin);
+		cmd[strlen(cmd) - 1] = '\0';
+
+		if (strncmp(cmd, "store", 5) == 0) {
+			res = store_number(buf);
+		} else if (strncmp(cmd, "read", 4) == 0) {
+			res = read_number(buf);
+		} else if (strncmp(cmd, "quit", 4) == 0) {
+			return (0);
+		}
+
+		if (res != 0) {
+			printf(" Failed to do %s command\n", cmd);
+		} else {
+			printf(" Completed %s command successfully\n", cmd);
+		}
+		memset(cmd, 0, 20);
+	}
+
+	return (0);
+}

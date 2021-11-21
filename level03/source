@@ -1,0 +1,85 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <string.h>
+
+void	clear_stdin() {
+	char	c = 0;
+
+	while (1) {
+		c = getchar();
+		if (c == '\n' || c == -1) {
+			return;
+		}
+	}
+}
+
+int		get_unum() {
+	unsigned int	x = 0;
+
+	fflush(stdout);
+	scanf("%u", &x);
+	clear_stdin();
+	return (x);
+}
+
+void	prog_timeout() {
+	exit(1);
+}
+
+void	decrypt(int delta) {
+	char	xor_pass[] = "Q}|u`sfg~sf{}|a3";
+	size_t	len;
+	int		i;
+
+	len = strlen(xor_pass);
+	for (i = 0; i < len; i++) {
+		xor_pass[i] = xor_pass[i] ^ delta;
+	}
+;
+	if (!strncmp(xor_pass, "Congratulations!", 17)) {
+		system("/bin/sh");
+		return;
+	}
+	puts("\nInvalid Password");
+}
+
+void	test(int pass, int leetdood) {
+	int		delta = leetdood - pass;
+
+	switch (delta) {
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+	case 6:
+	case 7:
+	case 8:
+	case 9:
+	case 16:
+	case 17:
+	case 18:
+	case 19:
+	case 20:
+	case 21:
+		decrypt(delta);
+		break;
+	default:
+		decrypt(rand());
+		break;
+	}
+}
+
+int		main(int argc, char **argv) {
+	int		pass;
+
+	srand(time(0));
+	puts("***********************************");
+	puts("*\t\tlevel03\t\t**");
+	puts("***********************************");
+	printf("Password:");
+	scanf("%d", &pass);
+	test(pass, 322424845);
+	return (0);
+}
