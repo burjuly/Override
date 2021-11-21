@@ -1,0 +1,38 @@
+#include <signal.h>
+#include <stdio.h>
+#include <sys/prctl.h>
+#include <sys/ptrace.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+int		main(void) {
+	pid_t	pid = fork();
+	int		pid2 = 0;
+	char	buf[32] = {};
+	int		status = 0;
+
+	if (!pid) {
+		prctl(1, 1);
+		ptrace(0, 0, NULL, NULL);
+		puts("Give me some shellcode, k");
+		gets(buf);
+		return (0);
+	}
+
+	while (1) {
+		wait(&status);
+		if (WIFEXITED(status) || WIFSIGNALED(status)) {
+			puts("child is exiting...");
+			return (0);
+		}
+		pid2 = ptrace(3, pid, (void*)44, NULL);
+		if (pid2 == 11) {
+			puts("no exec() for you");
+			kill(pid, 9);
+			return (0);
+		}
+	}
+
+	return (0);
+}
